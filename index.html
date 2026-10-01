@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>조교님 피하기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=East+Sea+Dokdo&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0A0E1A;
+  --panel:rgba(10,14,26,.8);
+  --pale:#D6E1EA;
+  --dim:#9AA9BA;
+  --blood:#A3262A;
+  --torch:#F3D9A0;
+  --screen:#5FD7FF;
+  --line:#34405A;
+  --btn:clamp(46px,14vw,60px);
+  --ibtn:clamp(44px,12.5vw,54px);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --night:#070A14; --panel:rgba(7,10,20,.82); }
+}
+:root[data-theme="dark"]{ --night:#070A14; --panel:rgba(7,10,20,.82); }
+@media (pointer:fine){ :root{ --btn:44px; --ibtn:46px; } }
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:var(--night);color:var(--pale);
+  font-family:"Do Hyeon","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  overflow:hidden;user-select:none;-webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;touch-action:none;
+}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+#shade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 38%,rgba(0,0,0,.72) 100%)}
+#chase{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(163,38,42,.6) 100%)}
+#hideShade{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(ellipse at 50% 55%,transparent 18%,rgba(0,0,0,.88) 62%)}
+#hideShade.on{opacity:1}
+#flash{position:fixed;inset:0;pointer-events:none;background:var(--blood);opacity:0;transition:opacity .5s}
+#flash.on{opacity:.55;transition:none}
+#camflash{position:fixed;inset:0;pointer-events:none;background:#fff;opacity:0;transition:opacity .6s}
+#camflash.on{opacity:.9;transition:none}
+
+.top{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 10px 0;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:2}
+.hud{
+  width:min(100%,520px);display:flex;justify-content:space-between;align-items:center;gap:8px;
+  background:var(--panel);border:1px solid var(--line);padding:7px 8px 7px 14px;font-size:18px;line-height:1;
+}
+.hud .floor{color:var(--screen);white-space:nowrap}
+.hud .hearts{font-size:15px;letter-spacing:1px;white-space:nowrap}
+.hud .score{white-space:nowrap}
+.mute{pointer-events:auto;font:inherit;font-size:17px;background:transparent;color:var(--pale);border:1px solid var(--line);width:34px;height:30px;padding:0;cursor:pointer}
+.row{width:min(100%,520px);display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+#minimap{width:clamp(96px,27vw,132px);height:auto;aspect-ratio:1;image-rendering:pixelated;border:1px solid var(--line);background:rgba(0,0,0,.55)}
+.effects{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.chip{background:var(--panel);color:var(--torch);border:1px solid var(--torch);padding:4px 9px;font-size:15px;line-height:1}
+
+.banner{
+  position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:3;
+  font-family:"East Sea Dokdo","Do Hyeon",sans-serif;font-size:46px;color:var(--pale);
+  text-shadow:0 0 12px #000,2px 2px 0 var(--blood);white-space:nowrap;pointer-events:none;display:none;
+}
+.banner.on{display:block}
+.prompt{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:2;
+  bottom:calc(env(safe-area-inset-bottom,0px) + var(--btn) * 3 + 42px);
+  background:var(--panel);border:1px solid var(--screen);color:var(--screen);
+  padding:6px 12px;font-size:16px;white-space:nowrap;pointer-events:none;display:none;
+}
+.prompt.on{display:block}
+
+.dpad{
+  position:fixed;left:0;bottom:0;z-index:2;
+  padding:0 0 calc(env(safe-area-inset-bottom,0px) + 16px) 14px;
+  display:grid;grid-template-columns:repeat(3,var(--btn));grid-template-rows:repeat(3,var(--btn));gap:5px;touch-action:none;
+}
+.dpad button,.actions button{font:inherit;color:var(--pale);cursor:pointer;touch-action:none;padding:0}
+.dpad button{
+  font-size:calc(var(--btn) * .38);
+  background:rgba(20,26,44,.6);border:1px solid rgba(214,225,234,.35);border-radius:50%;
+}
+.dpad button.down,.dpad button:active{background:rgba(95,215,255,.3);border-color:var(--screen)}
+.dpad .up{grid-column:2;grid-row:1}
+.dpad .left{grid-column:1;grid-row:2}
+.dpad .right{grid-column:3;grid-row:2}
+.dpad .dn{grid-column:2;grid-row:3}
+
+.actions{
+  position:fixed;right:0;bottom:0;z-index:2;
+  padding:0 14px calc(env(safe-area-inset-bottom,0px) + 16px) 0;
+  display:flex;flex-direction:column;align-items:stretch;gap:8px;
+}
+.inv{display:flex;gap:6px}
+.item{
+  position:relative;width:var(--ibtn);height:var(--ibtn);
+  background:rgba(20,26,44,.7);border:1px solid rgba(214,225,234,.35);border-radius:8px;
+  font-size:calc(var(--ibtn) * .44) !important;
+}
+.item b{position:absolute;right:3px;bottom:2px;font-weight:400;font-size:14px;color:var(--torch)}
+.item kbd,.hidebtn kbd{display:none;position:absolute;left:4px;top:3px;font-family:inherit;font-size:11px;color:var(--dim)}
+@media (pointer:fine){ .item kbd,.hidebtn kbd{display:block} }
+.item:disabled{opacity:.35;cursor:default}
+.item:not(:disabled):active{background:rgba(243,217,160,.3)}
+.hidebtn{
+  position:relative;height:calc(var(--ibtn) * 1.05);font-size:20px !important;
+  background:rgba(20,26,44,.7);border:1px solid rgba(214,225,234,.35);border-radius:8px;
+}
+.hidebtn:disabled{opacity:.35;cursor:default}
+.hidebtn.ready{border-color:var(--screen);color:var(--screen);box-shadow:0 0 14px rgba(95,215,255,.45)}
+.hidebtn.hiding{background:rgba(95,215,255,.25);border-color:var(--screen)}
+
+.overlay{
+  position:fixed;inset:0;z-index:5;
+  background:rgba(4,6,13,.84);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  padding:calc(env(safe-area-inset-top,0px) + 24px) 22px calc(env(safe-area-inset-bottom,0px) + 24px);overflow:auto;
+}
+.overlay[hidden]{display:none}
+.dept{font-size:16px;color:var(--screen);margin:0 0 6px;letter-spacing:.04em}
+.overlay h1,.overlay h2{
+  margin:0;font-family:"East Sea Dokdo","Do Hyeon",sans-serif;font-weight:400;line-height:.95;color:var(--pale);
+  text-shadow:0 0 18px rgba(95,215,255,.3),3px 3px 0 var(--blood);
+}
+.overlay h1{font-size:clamp(64px,18vw,112px)}
+.overlay h2{font-size:clamp(56px,15vw,92px)}
+.lead{font-size:19px;margin:10px 0 6px;color:var(--torch);max-width:28ch}
+.story{font-size:15px;margin:0 0 16px;color:var(--dim);max-width:32ch;line-height:1.5}
+.rules{font-size:15px;line-height:1.55;max-width:35ch;text-align:left;margin:0 0 20px;color:#B9C5D2}
+.rules p{margin:0 0 8px}
+.items{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;margin:6px 0 12px;color:var(--pale);align-items:center}
+.items .e{font-size:18px}
+.items .n{color:var(--torch)}
+.msg{font-size:18px;margin:12px 0 10px;max-width:28ch;line-height:1.45;color:#B9C5D2}
+.final{font-size:22px;margin:0 0 22px}
+.final b{font-weight:400;color:var(--torch);font-size:36px}
+.go{
+  font:inherit;font-size:24px;color:var(--night);background:var(--torch);
+  border:none;border-radius:2px;padding:12px 34px;cursor:pointer;
+  box-shadow:0 0 24px rgba(243,217,160,.35);
+}
+.go:active{transform:translateY(2px)}
+.go:focus-visible,.dpad button:focus-visible,.actions button:focus-visible,.mute:focus-visible{outline:2px solid var(--pale);outline-offset:3px}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="shade"></div>
+<div id="hideShade"></div>
+<div id="chase"></div>
+<div id="flash"></div>
+<div id="camflash"></div>
+
+<div class="top">
+  <div class="hud">
+    <span class="floor" id="hudFloor">3층 코딩 실습실</span>
+    <span class="hearts" id="hudHearts" aria-label="하트">❤️❤️❤️</span>
+    <span class="score" id="hudScore">점수 0</span>
+    <button class="mute" id="muteBtn" aria-label="소리 끄기">🔊</button>
+  </div>
+  <div class="row">
+    <canvas id="minimap" aria-label="지나온 길 지도"></canvas>
+    <div class="effects" id="effects"></div>
+  </div>
+</div>
+
+<div class="banner" id="banner"></div>
+<div class="prompt" id="prompt"></div>
+
+<div class="dpad" id="dpad">
+  <button class="up" data-d="0,-1" aria-label="앞으로">▲</button>
+  <button class="left" data-d="-1,0" aria-label="왼쪽으로">◀</button>
+  <button class="right" data-d="1,0" aria-label="오른쪽으로">▶</button>
+  <button class="dn" data-d="0,1" aria-label="뒤로">▼</button>
+</div>
+
+<div class="actions">
+  <div class="inv">
+    <button class="item" data-item="speed" aria-label="에너지 드링크 쓰기"><kbd>1</kbd>🥤<b>0</b></button>
+    <button class="item" data-item="invis" aria-label="크로마키 천 쓰기"><kbd>2</kbd>🟩<b>0</b></button>
+    <button class="item" data-item="stun" aria-label="카메라 플래시 쓰기"><kbd>3</kbd>📸<b>0</b></button>
+  </div>
+  <button class="hidebtn" id="hideBtn" disabled><kbd>스페이스</kbd><span>숨기</span></button>
+</div>
+
+<div class="overlay" id="startScreen">
+  <p class="dept">멀티미디어과 건물, 밤 11시</p>
+  <h1>조교님 피하기</h1>
+  <p class="lead">일을 시키려고 하는 조교님을 피해 학교를 탈출해라</p>
+  <p class="story">렌더링 걸기, 촬영 장비 반납 정리, 게임 빌드 테스트… 조교님이 일 시킬 학생을 찾아 복도를 돌고 있다.</p>
+  <div class="rules">
+    <p>🪜 계단을 찾아 3층 코딩 실습실에서 2층 영상 스튜디오, 1층 로비로 내려가고 🚪 정문으로 나가면 탈출이다. 왼쪽 위 지도에 지나온 길과 출구가 보인다.</p>
+    <p>🧑‍🏫 조교님의 빨간 시야에 들키면 쫓아온다. 붙잡히면 ❤️ 하나를 잃고, 모두 잃으면 게임 오버. 아래층으로 갈수록 조교님이 빨라지고 시야가 넓어진다.</p>
+    <p>파랗게 빛나는 자리에서는 책상 밑, 장비 케이스 뒤, 사물함에 숨을 수 있다. 쫓아오는 조교님 바로 앞에서 숨으면 들킨다.</p>
+    <div class="items">
+      <span class="e">🥤</span><span class="n">에너지 드링크</span><span>잠시 빨라진다</span>
+      <span class="e">🟩</span><span class="n">크로마키 천</span><span>잠시 투명해진다</span>
+      <span class="e">📸</span><span class="n">카메라 플래시</span><span>조교님을 잠시 기절시킨다</span>
+    </div>
+    <p>아이템은 주워서 모아 두었다가 원할 때 쓴다. PC는 방향키나 WASD로 움직이고, 스페이스로 숨기, 1, 2, 3으로 아이템을 쓴다. 폰은 화면 버튼을 누른다.</p>
+  </div>
+  <button class="go" id="startBtn">시작하기</button>
+</div>
+
+<div class="overlay" id="endScreen" hidden>
+  <h2 id="endTitle">게임 오버</h2>
+  <p class="msg" id="endMsg"></p>
+  <p class="final">점수 <b id="endScore">0</b></p>
+  <button class="go" id="retryBtn">다시 하기</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const COLS = 15, ROWS = 15;
+  const WALL_H = 1.2;
+
+  // 층별 설정 (아래층일수록 조교님 속도와 시야 증가)
+  const FLOORS = {
+    3: { name: '코딩 실습실',   taSpeed: 2.2, vision: 3, hideText: '책상 밑에 숨을 수 있다',      glow: 0x3fb6ff, exitColor: 0xffcc55 },
+    2: { name: '영상 스튜디오', taSpeed: 2.7, vision: 4, hideText: '장비 케이스 뒤에 숨을 수 있다', glow: 0xff3b3b, exitColor: 0xffcc55 },
+    1: { name: '로비',          taSpeed: 3.1, vision: 5, hideText: '사물함에 숨을 수 있다',        glow: 0x48e08a, exitColor: 0x48e08a }
+  };
+  const PLAYER_SPEED = 4;
+  const TA_COUNT = 3;
+  const HIDE_COUNT = 4;
+  const ITEMS = {
+    speed: { emoji: '🥤', name: '에너지 드링크', dur: 5, msg: '🥤 빨라졌다!' },
+    invis: { emoji: '🟩', name: '크로마키 천',   dur: 4, msg: '🟩 투명해졌다!' },
+    stun:  { emoji: '📸', name: '카메라 플래시', dur: 3, msg: '📸 조교님 기절!' }
+  };
+  const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+  let booted = false;
+  let state = 'start';
+  let floor = 3, hearts = 3, score = 0;
+  let grid, start, exit, explored, items = [], tas = [], hides = [], player;
+  let effects = { speed: 0, invis: 0 };
+  let inv = { speed: 0, invis: 0, stun: 0 };
+  let hidden = false;
+  let invuln = 0, freeze = 0, afterFreeze = null, time = 0;
+  let shakeT = 0, flickerT = 0;
+
+  // ================= 소리 (파일 없이 Web Audio로 생성) =================
+  const sfx = (() => {
+    let ac = null, master = null, noiseBuf = null, muted = false;
+    let nextBeat = 0, beatStep = 0;
+    const VOL = 0.8;
+    function init(){
+      if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ac = new AC();
+      master = ac.createGain(); master.gain.value = muted ? 0 : VOL; master.connect(ac.destination);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // 형광등과 컴퓨터 팬이 웅웅거리는 배경음
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 150;
+      const dg = ac.createGain(); dg.gain.value = 0.05;
+      [55, 55.6, 110.3].forEach(f => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); });
+      lp.connect(dg); dg.connect(master);
+      const fan = ac.createBufferSource(); fan.buffer = noiseBuf; fan.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.8;
+      const fg = ac.createGain(); fg.gain.value = 0.02;
+      fan.connect(bp); bp.connect(fg); fg.connect(master); fan.start();
+    }
+    function tone(freq, dur, type = 'sine', vol = 0.2, when = 0, slideTo = null){
+      if (!ac) return;
+      const t = ac.currentTime + when;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function noise(dur, vol, freq, type = 'lowpass', when = 0, q = 1){
+      if (!ac) return;
+      const t = ac.currentTime + when;
+      const s = ac.createBufferSource(); s.buffer = noiseBuf;
+      const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.05);
+    }
+    let stepAlt = false;
+    return {
+      init,
+      get muted(){ return muted; },
+      setMuted(m){ muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : VOL, ac.currentTime, 0.05); },
+      step(){ stepAlt = !stepAlt; noise(0.07, 0.22, stepAlt ? 950 : 720, 'bandpass', 0, 2.5); tone(stepAlt ? 85 : 75, 0.06, 'sine', 0.08); },
+      pickup(){ tone(660, 0.1, 'triangle', 0.14); tone(990, 0.16, 'triangle', 0.14, 0.08); },
+      speed(){ tone(180, 0.35, 'sawtooth', 0.05, 0, 900); noise(0.3, 0.12, 2200, 'highpass'); },
+      invis(){ tone(700, 0.5, 'sine', 0.08, 0, 1600); tone(1050, 0.5, 'sine', 0.05, 0.05, 2100); },
+      flash(){ noise(0.25, 0.4, 3000, 'highpass'); tone(2600, 0.06, 'square', 0.06); tone(400, 0.4, 'sine', 0.08, 0.05, 1200); },
+      alert(){ tone(1250, 0.1, 'square', 0.07); tone(880, 0.22, 'square', 0.07, 0.09); },
+      caught(){ tone(233, 0.7, 'sawtooth', 0.13, 0, 80); tone(247, 0.7, 'sawtooth', 0.11, 0, 85); noise(0.45, 0.28, 700); },
+      door(){ noise(0.14, 0.3, 320); tone(110, 0.12, 'sine', 0.14); },
+      stairs(){ for (let i = 0; i < 5; i++) { noise(0.08, 0.2, 900 - i * 110, 'bandpass', i * 0.17, 2.5); tone(80 - i * 5, 0.07, 'sine', 0.08, i * 0.17); } },
+      win(){ [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.9, 'triangle', 0.1, i * 0.12)); },
+      over(){ tone(196, 1.4, 'sawtooth', 0.12, 0, 55); tone(185, 1.4, 'sawtooth', 0.1, 0.1, 50); },
+      // 추격음과 숨었을 때 심장 소리
+      music(mode){
+        if (!ac) return;
+        const now = ac.currentTime;
+        if (mode === 'none') { nextBeat = now; beatStep = 0; return; }
+        if (nextBeat < now) nextBeat = now;
+        while (nextBeat < now + 0.12) {
+          const when = nextBeat - now;
+          if (mode === 'chase') {
+            tone(beatStep % 2 ? 116.5 : 110, 0.14, 'square', 0.06, when);
+            if (beatStep % 4 === 0) tone(70, 0.18, 'sine', 0.22, when, 38);
+            if (beatStep % 8 === 6) tone(1760, 0.05, 'triangle', 0.03, when);
+            nextBeat += 0.16;
+          } else {
+            tone(62, 0.16, 'sine', 0.24, when, 36);
+            tone(58, 0.14, 'sine', 0.16, when + 0.22, 34);
+            nextBeat += 0.85;
+          }
+          beatStep++;
+        }
+      }
+    };
+  })();
+
+  // ================= 입력 =================
+  const KEYMAP = {
+    ArrowUp:[0,-1], KeyW:[0,-1], ArrowDown:[0,1], KeyS:[0,1],
+    ArrowLeft:[-1,0], KeyA:[-1,0], ArrowRight:[1,0], KeyD:[1,0]
+  };
+  const held = [];
+  let padDir = null;
+
+  window.addEventListener('keydown', e => {
+    if (KEYMAP[e.code]) { e.preventDefault(); if (!held.includes(e.code)) held.push(e.code); }
+    if (e.repeat) return;
+    if (state === 'play') {
+      if (e.code === 'Space') { e.preventDefault(); toggleHide(); }
+      if (e.code === 'Digit1' || e.code === 'Numpad1') useItem('speed');
+      if (e.code === 'Digit2' || e.code === 'Numpad2') useItem('invis');
+      if (e.code === 'Digit3' || e.code === 'Numpad3') useItem('stun');
+    } else if (e.code === 'Enter' || e.code === 'Space') {
+      e.preventDefault(); startGame();
+    }
+  });
+  window.addEventListener('keyup', e => { const i = held.indexOf(e.code); if (i >= 0) held.splice(i, 1); });
+  window.addEventListener('blur', () => { held.length = 0; padDir = null; clearPad(); });
+
+  const padBtns = [...document.querySelectorAll('.dpad button')];
+  function clearPad(){ padBtns.forEach(b => b.classList.remove('down')); }
+  padBtns.forEach(b => {
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      padDir = b.dataset.d.split(',').map(Number);
+      clearPad(); b.classList.add('down');
+    });
+    b.addEventListener('pointerenter', e => {
+      if (padDir && e.buttons) { padDir = b.dataset.d.split(',').map(Number); clearPad(); b.classList.add('down'); }
+    });
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  ['pointerup','pointercancel'].forEach(ev => window.addEventListener(ev, () => { padDir = null; clearPad(); }));
+
+  document.querySelectorAll('.item').forEach(b => {
+    b.addEventListener('pointerdown', e => { e.preventDefault(); useItem(b.dataset.item); });
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  const hideBtn = document.getElementById('hideBtn');
+  hideBtn.addEventListener('pointerdown', e => { e.preventDefault(); toggleHide(); });
+  hideBtn.addEventListener('contextmenu', e => e.preventDefault());
+
+  const muteBtn = document.getElementById('muteBtn');
+  muteBtn.addEventListener('click', () => {
+    sfx.init();
+    sfx.setMuted(!sfx.muted);
+    muteBtn.textContent = sfx.muted ? '🔇' : '🔊';
+    muteBtn.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기');
+  });
+
+  function inputDir(){
+    if (padDir) return padDir;
+    if (held.length) return KEYMAP[held[held.length - 1]];
+    return null;
+  }
+
+  // ================= 맵 =================
+  const isFloor = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && grid[y][x] === 0;
+  function shuffle(a){
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function genMaze(){
+    const g = Array.from({ length: ROWS }, () => Array(COLS).fill(1));
+    const stack = [[1, 1]]; g[1][1] = 0;
+    while (stack.length) {
+      const [x, y] = stack[stack.length - 1];
+      const nb = [[2,0],[-2,0],[0,2],[0,-2]]
+        .map(([dx, dy]) => [x + dx, y + dy, dx, dy])
+        .filter(([nx, ny]) => nx > 0 && ny > 0 && nx < COLS - 1 && ny < ROWS - 1 && g[ny][nx] === 1);
+      if (!nb.length) { stack.pop(); continue; }
+      const [nx, ny, dx, dy] = nb[Math.random() * nb.length | 0];
+      g[y + dy / 2][x + dx / 2] = 0; g[ny][nx] = 0;
+      stack.push([nx, ny]);
+    }
+    for (let y = 1; y < ROWS - 1; y += 2) for (let x = 1; x < COLS - 1; x += 2) {
+      const walls = DIRS.filter(([dx, dy]) => g[y + dy][x + dx] === 1);
+      if (walls.length === 3 && Math.random() < 0.75) {
+        const opts = walls.filter(([dx, dy]) => {
+          const bx = x + dx * 2, by = y + dy * 2;
+          return bx > 0 && by > 0 && bx < COLS - 1 && by < ROWS - 1;
+        });
+        if (opts.length) { const [dx, dy] = opts[Math.random() * opts.length | 0]; g[y + dy][x + dx] = 0; }
+      }
+    }
+    for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) {
+      if (g[y][x] !== 1) continue;
+      const h = x % 2 === 0 && y % 2 === 1 && g[y][x-1] === 0 && g[y][x+1] === 0;
+      const v = x % 2 === 1 && y % 2 === 0 && g[y-1][x] === 0 && g[y+1][x] === 0;
+      if ((h || v) && Math.random() < 0.12) g[y][x] = 0;
+    }
+    return g;
+  }
+
+  function bfs(sx, sy){
+    const d = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
+    const p = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    const q = [[sx, sy]]; d[sy][sx] = 0;
+    for (let i = 0; i < q.length; i++) {
+      const [x, y] = q[i];
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx, ny = y + dy;
+        if (isFloor(nx, ny) && d[ny][nx] < 0) { d[ny][nx] = d[y][x] + 1; p[ny][nx] = [x, y]; q.push([nx, ny]); }
+      }
+    }
+    return { d, p };
+  }
+
+  function stepToward(sx, sy, gx, gy){
+    if (sx === gx && sy === gy) return null;
+    const { d, p } = bfs(sx, sy);
+    if (d[gy][gx] < 0) return null;
+    let cx = gx, cy = gy;
+    for (;;) {
+      const [px, py] = p[cy][cx];
+      if (px === sx && py === sy) return [cx, cy];
+      cx = px; cy = py;
+    }
+  }
+
+  function los(x0, y0, x1, y1){
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy, x = x0, y = y0;
+    while (!(x === x1 && y === y1)) {
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x += sx; }
+      if (e2 < dx) { err += dx; y += sy; }
+      if (!(x === x1 && y === y1) && grid[y][x] === 1) return false;
+    }
+    return true;
+  }
+
+  function newFloor(){
+    grid = genMaze();
+    // 시작과 출구는 서로 반대쪽 모서리 (층마다 무작위)
+    const corners = [[1,1],[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]];
+    const si = Math.random() * 4 | 0;
+    start = { x: corners[si][0], y: corners[si][1] };
+    exit = { x: corners[3 - si][0], y: corners[3 - si][1] };
+    explored = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+    const { d } = bfs(start.x, start.y);
+    const cells = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (grid[y][x] === 0 && !(x === start.x && y === start.y) && !(x === exit.x && y === exit.y)) cells.push([x, y]);
+    }
+    shuffle(cells);
+    const taken = (x, y) => items.some(o => o.x === x && o.y === y) || hides.some(o => o.x === x && o.y === y);
+
+    const types = shuffle(['speed', 'invis', 'stun', ['speed','invis','stun'][Math.random() * 3 | 0]]);
+    items = []; hides = []; tas = [];
+    for (const [x, y] of cells) {
+      if (items.length >= types.length) break;
+      if (d[y][x] >= 4) items.push({ x, y, type: types[items.length] });
+    }
+    for (const [x, y] of cells) {
+      if (hides.length >= HIDE_COUNT) break;
+      if (d[y][x] < 3 || taken(x, y)) continue;
+      if (hides.some(h => Math.abs(h.x - x) + Math.abs(h.y - y) < 4)) continue;
+      const pref = [[0,-1],[1,0],[-1,0],[0,1]].find(([dx, dy]) => !isFloor(x + dx, y + dy));
+      if (!pref) continue;
+      hides.push({ x, y, wall: pref });
+    }
+    for (const [x, y] of cells) {
+      if (tas.length >= TA_COUNT) break;
+      if (d[y][x] < 8 || taken(x, y)) continue;
+      if (tas.some(t => Math.abs(t.sx - x) + Math.abs(t.sy - y) < 4)) continue;
+      tas.push({ sx: x, sy: y });
+    }
+    resetPositions();
+    build3D();
+    reveal();
+  }
+
+  function resetPositions(){
+    player = { x: start.x, y: start.y, tx: start.x, ty: start.y, fx: start.x, fy: start.y, moving: false };
+    tas.forEach(t => Object.assign(t, { x: t.sx, y: t.sy, tx: t.sx, ty: t.sy, dir: [0, 0], state: 'patrol', last: null, stun: 0 }));
+    effects = { speed: 0, invis: 0 };
+    hidden = false;
+  }
+
+  function reveal(){
+    const px = Math.round(player.x), py = Math.round(player.y);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const x = px + dx, y = py + dy;
+      if (x < 0 || y < 0 || x >= COLS || y >= ROWS || dx * dx + dy * dy > 5) continue;
+      if (grid[y][x] === 1 || los(px, py, x, y)) explored[y][x] = true;
+    }
+  }
+
+  const hideAt = (x, y) => hides.find(h => h.x === x && h.y === y);
+
+  // ================= 이동 =================
+  function moveEnt(e, speed, dt){
+    const dx = e.tx - e.x, dy = e.ty - e.y;
+    const dist = Math.abs(dx) + Math.abs(dy);
+    const step = speed * dt;
+    if (dist <= step) { e.x = e.tx; e.y = e.ty; return true; }
+    e.x += Math.sign(dx) * step; e.y += Math.sign(dy) * step;
+    return false;
+  }
+
+  function updatePlayer(dt){
+    if (hidden) { player.moving = false; return; }
+    const dir = inputDir();
+    const sp = PLAYER_SPEED * (effects.speed > 0 ? 1.6 : 1);
+    const atCenter = player.x === player.tx && player.y === player.ty;
+    if (!atCenter && dir) {
+      const mx = Math.sign(player.tx - player.x), my = Math.sign(player.ty - player.y);
+      if (dir[0] === -mx && dir[1] === -my) {
+        [player.tx, player.fx] = [player.fx, player.tx];
+        [player.ty, player.fy] = [player.fy, player.ty];
+      }
+    }
+    if (atCenter && dir && isFloor(player.x + dir[0], player.y + dir[1])) {
+      player.fx = player.x; player.fy = player.y;
+      player.tx = player.x + dir[0]; player.ty = player.y + dir[1];
+    }
+    player.moving = player.x !== player.tx || player.y !== player.ty;
+    if (player.moving) { if (moveEnt(player, sp, dt)) onPlayerTile(); }
+  }
+
+  function onPlayerTile(){
+    sfx.step();
+    reveal();
+    const i = items.findIndex(it => it.x === player.x && it.y === player.y);
+    if (i >= 0) {
+      const it = items.splice(i, 1)[0];
+      dyn.remove(it.obj);
+      inv[it.type]++;
+      score += 100;
+      sfx.pickup();
+      showBanner(`${ITEMS[it.type].emoji} ${ITEMS[it.type].name} 획득`, 800);
+      updateHud(); updateActions();
+    }
+    if (player.x === exit.x && player.y === exit.y) floorClear();
+  }
+
+  function useItem(type){
+    if (state !== 'play' || freeze > 0 || inv[type] <= 0) return;
+    inv[type]--;
+    const def = ITEMS[type];
+    if (type === 'speed') { effects.speed = def.dur; sfx.speed(); }
+    if (type === 'invis') { effects.invis = def.dur; sfx.invis(); }
+    if (type === 'stun') {
+      tas.forEach(t => { t.stun = def.dur; t.state = 'patrol'; t.last = null; });
+      sfx.flash();
+      const cf = document.getElementById('camflash');
+      cf.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => cf.classList.remove('on')));
+    }
+    showBanner(def.msg, 900);
+    updateActions();
+  }
+
+  function toggleHide(){
+    if (state !== 'play' || freeze > 0) return;
+    if (hidden) { hidden = false; sfx.door(); updateActions(); return; }
+    const px = Math.round(player.x), py = Math.round(player.y);
+    const h = hideAt(px, py);
+    if (!h || Math.abs(player.x - px) + Math.abs(player.y - py) > 0.35) return;
+    player.x = player.tx = player.fx = px; player.y = player.ty = player.fy = py;
+    sfx.door();
+    // 쫓아오던 조교님이 가까이 있으면 숨는 걸 들킨다
+    const spotter = tas.find(t => t.stun <= 0 && t.state === 'chase' && Math.hypot(t.x - px, t.y - py) <= 2.5);
+    if (spotter) { caught('숨는 걸 들켰다!'); return; }
+    hidden = true;
+    // 쫓던 조교님은 마지막으로 본 곳까지 와서 두리번거리다 돌아간다
+    tas.forEach(t => { if (t.state === 'chase') t.last = [px, py]; });
+    updateActions();
+  }
+
+  function taSees(t){
+    if (hidden || effects.invis > 0 || t.stun > 0) return false;
+    const R = FLOORS[floor].vision;
+    const ax = Math.round(t.x), ay = Math.round(t.y);
+    const px = Math.round(player.x), py = Math.round(player.y);
+    const dx = px - ax, dy = py - ay;
+    if (dx * dx + dy * dy > R * R) return false;
+    return los(ax, ay, px, py);
+  }
+
+  function decide(t){
+    const cx = t.x, cy = t.y;
+    if (t.state === 'chase' && t.last) {
+      const s = stepToward(cx, cy, t.last[0], t.last[1]);
+      if (s) { t.dir = [s[0] - cx, s[1] - cy]; t.tx = s[0]; t.ty = s[1]; return; }
+      t.state = 'patrol'; t.last = null;
+    }
+    const opts = DIRS.filter(([dx, dy]) => isFloor(cx + dx, cy + dy));
+    if (!opts.length) return;
+    let c = opts.filter(([dx, dy]) => !(dx === -t.dir[0] && dy === -t.dir[1]));
+    if (!c.length) c = opts;
+    let pick = c.find(([dx, dy]) => dx === t.dir[0] && dy === t.dir[1]);
+    if (!pick || Math.random() < 0.35) pick = c[Math.random() * c.length | 0];
+    t.dir = pick; t.tx = cx + pick[0]; t.ty = cy + pick[1];
+  }
+
+  function updateTA(t, dt){
+    if (t.stun > 0) { t.stun = Math.max(0, t.stun - dt); return; }
+    if (taSees(t)) {
+      if (t.state !== 'chase') sfx.alert();
+      t.state = 'chase'; t.last = [Math.round(player.x), Math.round(player.y)];
+    }
+    const sp = FLOORS[floor].taSpeed * (t.state === 'chase' ? 1.1 : 1);
+    if (t.x === t.tx && t.y === t.ty) decide(t);
+    if (t.x !== t.tx || t.y !== t.ty) { if (moveEnt(t, sp, dt)) decide(t); }
+  }
+
+  // ================= 진행 =================
+  function caught(text){
+    hearts--;
+    hidden = false;
+    updateHud(); updateActions();
+    freeze = 1;
+    shakeT = 0.4;
+    sfx.caught();
+    const fl = document.getElementById('flash');
+    fl.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => fl.classList.remove('on')));
+    if (hearts <= 0) {
+      showBanner(text || '조교님에게 붙잡혔다!', 1000);
+      afterFreeze = () => endGame(false);
+    } else {
+      showBanner((text || '조교님에게 걸렸다!') + ' ❤️ -1', 1000);
+      afterFreeze = () => { resetPositions(); invuln = 1.5; snapCamera(); updateActions(); };
+    }
+  }
+
+  function floorClear(){
+    score += 1000;
+    updateHud();
+    freeze = 1.2;
+    if (floor === 1) {
+      showBanner('🚪 정문 탈출!', 1200);
+      sfx.win();
+      afterFreeze = () => endGame(true);
+    } else {
+      const next = floor - 1;
+      sfx.stairs();
+      showBanner(`🪜 ${next}층 ${FLOORS[next].name}…`, 1200);
+      afterFreeze = () => { floor = next; newFloor(); invuln = 1; updateHud(); updateActions(); snapCamera(); };
+    }
+  }
+
+  function startGame(){
+    if (!booted) return;
+    sfx.init();
+    floor = 3; hearts = 3; score = 0; invuln = 0;
+    inv = { speed: 0, invis: 0, stun: 0 };
+    newFloor();
+    updateHud(); updateActions();
+    snapCamera();
+    document.getElementById('startScreen').hidden = true;
+    document.getElementById('endScreen').hidden = true;
+    state = 'play';
+    freeze = 0.9; afterFreeze = null;
+    showBanner(`3층 ${FLOORS[3].name}`, 900);
+  }
+
+  function endGame(win){
+    state = 'end';
+    hidden = false;
+    if (!win) sfx.over();
+    document.getElementById('endTitle').textContent = win ? '탈출 성공!' : '게임 오버';
+    document.getElementById('endMsg').textContent = win
+      ? '조교님을 따돌리고 멀티미디어과 건물을 빠져나왔다. 렌더링은 내일의 내가 하겠지.'
+      : `${floor}층 ${FLOORS[floor].name}에서 조교님에게 붙잡혔다. 오늘 밤은 장비 정리다…`;
+    document.getElementById('endScore').textContent = score.toLocaleString('ko-KR');
+    document.getElementById('endScreen').hidden = false;
+    document.getElementById('retryBtn').focus({ preventScroll: true });
+    updateActions();
+  }
+
+  // ================= HUD =================
+  const banner = document.getElementById('banner');
+  let bannerTimer = null;
+  function showBanner(text, ms){
+    banner.textContent = text; banner.classList.add('on');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => banner.classList.remove('on'), ms);
+  }
+  function updateHud(){
+    const h = Math.max(0, hearts);
+    document.getElementById('hudFloor').textContent = `${floor}층 ${FLOORS[floor].name}`;
+    document.getElementById('hudHearts').textContent = '❤️'.repeat(h) + '🖤'.repeat(3 - h);
+    document.getElementById('hudScore').textContent = `점수 ${score.toLocaleString('ko-KR')}`;
+  }
+  function updateActions(){
+    document.querySelectorAll('.item').forEach(b => {
+      const n = inv[b.dataset.item];
+      b.querySelector('b').textContent = n;
+      b.disabled = n <= 0 || state !== 'play';
+    });
+  }
+
+  const promptEl = document.getElementById('prompt');
+  const hideShade = document.getElementById('hideShade');
+  let lastPrompt = '';
+  function updatePromptAndHide(){
+    let text = '', canHide = false;
+    if (state === 'play' && freeze <= 0) {
+      if (hidden) text = '숨어 있다… 다시 누르면 나온다';
+      else {
+        const px = Math.round(player.x), py = Math.round(player.y);
+        if (hideAt(px, py) && Math.abs(player.x - px) + Math.abs(player.y - py) <= 0.35) { text = FLOORS[floor].hideText; canHide = true; }
+      }
+    }
+    if (text !== lastPrompt) {
+      lastPrompt = text;
+      promptEl.textContent = text;
+      promptEl.classList.toggle('on', !!text);
+    }
+    hideBtn.disabled = !(canHide || hidden);
+    hideBtn.classList.toggle('ready', canHide);
+    hideBtn.classList.toggle('hiding', hidden);
+    hideBtn.querySelector('span').textContent = hidden ? '나오기' : '숨기';
+    hideShade.classList.toggle('on', hidden);
+  }
+
+  const effectsEl = document.getElementById('effects');
+  let lastEffects = '';
+  function updateEffects(){
+    const parts = [];
+    if (effects.speed > 0) parts.push(`🥤 빨라짐 ${Math.ceil(effects.speed)}초`);
+    if (effects.invis > 0) parts.push(`🟩 투명 ${Math.ceil(effects.invis)}초`);
+    const stun = tas.length ? Math.max(0, ...tas.map(t => t.stun)) : 0;
+    if (stun > 0) parts.push(`💫 조교님 기절 ${Math.ceil(stun)}초`);
+    const key = parts.join('|');
+    if (key !== lastEffects) {
+      lastEffects = key;
+      effectsEl.innerHTML = parts.map(p => `<span class="chip">${p}</span>`).join('');
+    }
+  }
+
+  // 미니맵: 지나온 곳만 보이고 출구는 항상 표시
+  const mm = document.getElementById('minimap');
+  const MS = 6;
+  mm.width = COLS * MS; mm.height = ROWS * MS;
+  const mctx = mm.getContext('2d');
+  function drawMinimap(){
+    mctx.clearRect(0, 0, mm.width, mm.height);
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (!explored[y][x]) continue;
+      mctx.fillStyle = grid[y][x] === 1 ? '#232b3d' : '#6f7d94';
+      mctx.fillRect(x * MS, y * MS, MS, MS);
+    }
+    for (const h of hides) if (explored[h.y][h.x]) { mctx.fillStyle = '#5fd7ff'; mctx.fillRect(h.x * MS + 1, h.y * MS + 1, MS - 2, MS - 2); }
+    mctx.fillStyle = Math.floor(time * 3) % 2 ? '#f2c94c' : '#a8821f';
+    mctx.fillRect(exit.x * MS, exit.y * MS, MS, MS);
+    if (!(hidden && Math.floor(time * 4) % 2)) {
+      mctx.fillStyle = '#ffffff';
+      mctx.fillRect(Math.round(player.x * MS) + 1, Math.round(player.y * MS) + 1, MS - 2, MS - 2);
+    }
+  }
+
+  // ================= 3D =================
+  const canvas = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const FOG_COLOR = 0x05070d;
+  scene.background = new THREE.Color(FOG_COLOR);
+  scene.fog = new THREE.Fog(FOG_COLOR, 9, 16);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 60);
+
+  scene.add(new THREE.HemisphereLight(0x5a6a95, 0x0a0a10, 0.5));
+  const torch = new THREE.PointLight(0xffe0aa, 1.9, 7.5, 2);
+  scene.add(torch);
+  const exitLight = new THREE.PointLight(0xffcc55, 1.3, 4, 2);
+  scene.add(exitLight);
+  const glowLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0x3fb6ff, 0.9, 3.2, 2); scene.add(l); return l; });
+
+  function canvasTex(w, h, draw){
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4;
+    return t;
+  }
+  function speckle(g, w, h, n, color, alpha, y0 = 0){
+    g.fillStyle = color;
+    for (let i = 0; i < n; i++) { g.globalAlpha = Math.random() * alpha; g.fillRect(Math.random() * w, y0 + Math.random() * h, 2, 2); }
+    g.globalAlpha = 1;
+  }
+  const KFONT = '"Do Hyeon","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+
+  // ---- 층별 바닥 ----
+  const FLOOR_TEX = {
+    3: () => canvasTex(128, 128, g => { // 카펫 타일
+      for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { g.fillStyle = (x + y) % 2 ? '#2F3648' : '#373F54'; g.fillRect(x * 64, y * 64, 64, 64); }
+      speckle(g, 128, 128, 1400, '#151a26', 0.45); speckle(g, 128, 128, 400, '#6b7a99', 0.18);
+      g.fillStyle = '#1c2130'; g.fillRect(0, 0, 128, 1); g.fillRect(0, 64, 128, 1); g.fillRect(0, 0, 1, 128); g.fillRect(64, 0, 1, 128);
+    }),
+    2: () => canvasTex(128, 128, g => { // 스튜디오 검정 바닥 + 위치 테이프
+      for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { g.fillStyle = (x + y) % 2 ? '#1A1A1F' : '#202026'; g.fillRect(x * 64, y * 64, 64, 64); }
+      speckle(g, 128, 128, 500, '#3a3a44', 0.25);
+      g.fillStyle = '#d9b53a';
+      g.save(); g.translate(96, 32); g.rotate(Math.PI / 4); g.fillRect(-9, -2, 18, 4); g.fillRect(-2, -9, 4, 18); g.restore();
+      g.fillRect(14, 84, 14, 3); g.fillRect(14, 84, 3, 14);
+    }),
+    1: () => canvasTex(128, 128, g => { // 로비 돌바닥
+      for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { g.fillStyle = (x + y) % 2 ? '#62666C' : '#6D7177'; g.fillRect(x * 64, y * 64, 64, 64); }
+      speckle(g, 128, 128, 900, '#3d4046', 0.35); speckle(g, 128, 128, 400, '#a9adb3', 0.2);
+      g.fillStyle = '#44474c'; g.fillRect(0, 0, 128, 2); g.fillRect(0, 63, 128, 2); g.fillRect(0, 0, 2, 128); g.fillRect(63, 0, 2, 128);
+    })
+  };
+  // ---- 층별 벽 ----
+  const WALL_TEX = {
+    3: () => canvasTex(128, 128, g => { // 패널 벽 + 파란 LED 띠
+      g.fillStyle = '#3A4052'; g.fillRect(0, 0, 128, 76);
+      speckle(g, 128, 76, 300, '#262b38', 0.35);
+      g.fillStyle = '#2c3140'; g.fillRect(0, 36, 128, 2); g.fillRect(63, 0, 2, 76);
+      g.fillStyle = '#2FA8D8'; g.fillRect(0, 74, 128, 4);
+      g.fillStyle = '#9FE4FF'; g.fillRect(0, 75, 128, 1);
+      g.fillStyle = '#22262F'; g.fillRect(0, 78, 128, 42);
+      g.fillStyle = '#111318'; g.fillRect(0, 120, 128, 8);
+    }),
+    2: () => canvasTex(128, 128, g => { // 흡음재
+      g.fillStyle = '#1D1D22'; g.fillRect(0, 0, 128, 128);
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+        const vert = (x + y) % 2 === 0;
+        for (let i = 0; i < 4; i++) {
+          g.fillStyle = i % 2 ? '#2C2C33' : '#16161A';
+          if (vert) g.fillRect(x * 32 + i * 8, y * 32, 8, 32);
+          else g.fillRect(x * 32, y * 32 + i * 8, 32, 8);
+        }
+      }
+      g.fillStyle = '#0d0d10'; g.fillRect(0, 120, 128, 8);
+    }),
+    1: () => canvasTex(128, 128, g => { // 회벽 + 나무 징두리
+      g.fillStyle = '#5E6370'; g.fillRect(0, 0, 128, 70);
+      speckle(g, 128, 70, 500, '#2a2e38', 0.4);
+      g.fillStyle = '#24160F'; g.fillRect(0, 70, 128, 7);
+      g.fillStyle = '#4A2E1F'; g.fillRect(0, 77, 128, 43);
+      g.fillStyle = '#35201A'; for (let x = 0; x < 128; x += 21) g.fillRect(x, 77, 2, 43);
+      speckle(g, 128, 43, 300, '#1a0f0a', 0.3, 77);
+      g.fillStyle = '#140C08'; g.fillRect(0, 120, 128, 8);
+    })
+  };
+  // ---- 층별 벽 장식 (모니터, 사인, 포스터) ----
+  const DECOR_TEX = {
+    3: [
+      () => canvasTex(128, 88, g => { // 코드 화면
+        g.fillStyle = '#0f0f12'; g.fillRect(0, 0, 128, 88);
+        g.fillStyle = '#0b1322'; g.fillRect(4, 4, 120, 80);
+        const cols = ['#5fd7ff','#ff79c6','#f1fa8c','#50fa7b','#bd93f9','#8b9bb4'];
+        for (let y = 10; y < 78; y += 7) {
+          let x = 8 + (Math.random() * 3 | 0) * 8;
+          const n = 1 + (Math.random() * 4 | 0);
+          for (let i = 0; i < n && x < 114; i++) {
+            const w = 6 + (Math.random() * 22 | 0);
+            g.fillStyle = cols[Math.random() * cols.length | 0];
+            g.fillRect(x, y, Math.min(w, 118 - x), 3); x += w + 4;
+          }
+        }
+      }),
+      () => canvasTex(128, 88, g => { // 만들던 게임 화면
+        g.fillStyle = '#0f0f12'; g.fillRect(0, 0, 128, 88);
+        g.fillStyle = '#26407a'; g.fillRect(4, 4, 120, 80);
+        g.fillStyle = '#f5f0c8'; g.fillRect(96, 12, 12, 12);
+        g.fillStyle = '#5a3c22'; g.fillRect(4, 68, 120, 16);
+        g.fillStyle = '#4caf50'; g.fillRect(4, 64, 120, 5);
+        g.fillStyle = '#8a5a2b'; g.fillRect(52, 44, 36, 8); g.fillStyle = '#4caf50'; g.fillRect(52, 42, 36, 3);
+        g.fillStyle = '#ffd23f'; [[60,34],[72,34],[22,54]].forEach(([x, y]) => g.fillRect(x, y, 5, 5));
+        g.fillStyle = '#e04848'; g.fillRect(24, 52, 9, 12); g.fillStyle = '#ffd7b0'; g.fillRect(25, 47, 7, 6);
+      })
+    ],
+    2: [
+      () => canvasTex(128, 88, g => { // 촬영 중 표시등
+        g.fillStyle = '#140404'; g.fillRect(0, 0, 128, 88);
+        g.strokeStyle = '#ff3b3b'; g.lineWidth = 4; g.strokeRect(8, 14, 112, 60);
+        g.fillStyle = '#ff3b3b'; g.beginPath(); g.arc(28, 44, 8, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#ff6a6a'; g.font = `32px ${KFONT}`; g.textAlign = 'left'; g.textBaseline = 'middle';
+        g.fillText('촬영 중', 44, 46);
+      }),
+      () => canvasTex(128, 88, g => { // 영상 편집 타임라인
+        g.fillStyle = '#0f0f12'; g.fillRect(0, 0, 128, 88);
+        g.fillStyle = '#15161c'; g.fillRect(4, 4, 120, 80);
+        g.fillStyle = '#2b3a55'; g.fillRect(34, 8, 60, 34);
+        g.fillStyle = '#e2a64a'; g.fillRect(52, 18, 22, 14);
+        const tr = [['#4a90e2', 48], ['#7b4ae2', 60], ['#4ac28e', 72]];
+        tr.forEach(([c, y]) => { let x = 8; while (x < 116) { const w = 10 + (Math.random() * 26 | 0); g.fillStyle = c; g.fillRect(x, y, Math.min(w, 120 - x), 8); x += w + 3; } });
+        g.fillStyle = '#ff3b3b'; g.fillRect(70, 44, 2, 38);
+      })
+    ],
+    1: [
+      () => canvasTex(128, 88, g => { // 졸업작품전 포스터
+        g.fillStyle = '#efeadf'; g.fillRect(0, 0, 128, 88);
+        g.fillStyle = '#2aa3a3'; g.beginPath(); g.arc(100, 22, 18, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#e8743b'; g.beginPath(); g.moveTo(84, 86); g.lineTo(124, 86); g.lineTo(104, 50); g.fill();
+        g.fillStyle = '#222'; g.font = `20px ${KFONT}`; g.textBaseline = 'top'; g.fillText('멀티미디어과', 8, 10);
+        g.fillStyle = '#c0392b'; g.font = `26px ${KFONT}`; g.fillText('졸업작품전', 8, 36);
+        g.fillStyle = '#555'; g.font = `13px ${KFONT}`; g.fillText('영상 · 게임 · 웹', 8, 68);
+      }),
+      () => canvasTex(128, 88, g => { // 동아리 모집 포스터
+        g.fillStyle = '#1f2f5a'; g.fillRect(0, 0, 128, 88);
+        g.fillStyle = '#ffd23f'; g.font = `22px ${KFONT}`; g.textBaseline = 'top';
+        g.fillText('게임 개발', 8, 8); g.fillText('동아리 모집', 8, 32);
+        g.fillStyle = '#d6e1ea'; g.fillRect(70, 60, 48, 20); g.fillRect(64, 64, 8, 14); g.fillRect(116, 64, 8, 14);
+        g.fillStyle = '#1f2f5a'; g.fillRect(80, 66, 8, 3); g.fillRect(82.5, 63.5, 3, 8);
+        g.fillStyle = '#e04848'; g.beginPath(); g.arc(104, 66, 3, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#4caf50'; g.beginPath(); g.arc(110, 72, 3, 0, Math.PI * 2); g.fill();
+      })
+    ]
+  };
+  const texCacheFloor = {};
+  function floorAssets(f){
+    if (!texCacheFloor[f]) {
+      const ft = FLOOR_TEX[f](); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(COLS / 2, ROWS / 2);
+      texCacheFloor[f] = { floor: ft, wall: WALL_TEX[f](), decor: DECOR_TEX[f].map(fn => fn()) };
+    }
+    return texCacheFloor[f];
+  }
+
+  const floorMat = new THREE.MeshPhongMaterial({ shininess: 40, specular: 0x222222 });
+  const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(COLS, ROWS).rotateX(-Math.PI / 2), floorMat);
+  floorMesh.position.set(COLS / 2 - 0.5, 0, ROWS / 2 - 0.5);
+  scene.add(floorMesh);
+
+  const MAXW = COLS * ROWS;
+  const wallMat = new THREE.MeshPhongMaterial({ shininess: 6 });
+  const wallMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, WALL_H, 1), wallMat, MAXW);
+  const capMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x0c0f18 }), MAXW);
+  [wallMesh, capMesh].forEach(m => { m.frustumCulled = false; scene.add(m); });
+
+  const decorGeo = new THREE.PlaneGeometry(0.62, 0.42);
+  const decorMeshes = [0, 1].map(() => {
+    const m = new THREE.InstancedMesh(decorGeo, new THREE.MeshBasicMaterial(), 120);
+    m.frustumCulled = false; m.count = 0; scene.add(m); return m;
+  });
+
+  const MAXV = 400;
+  const visGeo = new THREE.PlaneGeometry(0.94, 0.94).rotateX(-Math.PI / 2);
+  const visPatrol = new THREE.InstancedMesh(visGeo, new THREE.MeshBasicMaterial({ color: 0xd9483b, transparent: true, opacity: 0.22, depthWrite: false, fog: false }), MAXV);
+  const visChase = new THREE.InstancedMesh(visGeo, new THREE.MeshBasicMaterial({ color: 0xff3a30, transparent: true, opacity: 0.42, depthWrite: false, fog: false }), MAXV);
+  [visPatrol, visChase].forEach(m => { m.frustumCulled = false; m.count = 0; m.renderOrder = 1; scene.add(m); });
+
+  const exitGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.96, 0.96).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xf2c94c, transparent: true, opacity: 0.6, depthWrite: false })
+  );
+  scene.add(exitGlow);
+
+  const emojiCache = {};
+  function emojiTex(e){
+    if (!emojiCache[e]) emojiCache[e] = canvasTex(128, 128, g => {
+      g.font = `104px ${EMOJI_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(e, 64, 72);
+    });
+    return emojiCache[e];
+  }
+  function makeSprite(e, size){
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true }));
+    s.center.set(0.5, 0.06);
+    s.scale.set(size, size, 1);
+    return s;
+  }
+  const shadowGeo = new THREE.CircleGeometry(0.3, 18).rotateX(-Math.PI / 2);
+  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false });
+  function makeActor(e, size){
+    const g = new THREE.Group();
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat); shadow.position.y = 0.02;
+    const sprite = makeSprite(e, size);
+    g.add(shadow, sprite);
+    return { group: g, sprite, shadow };
+  }
+
+  // ---- 숨는 곳 소품 (도형으로 조립) ----
+  const pm = c => new THREE.MeshPhongMaterial({ color: c, shininess: 25 });
+  function box(w, h, d, m, x, y, z){ const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); return b; }
+  function makeProp(f){
+    const g = new THREE.Group();
+    let peekY = 0.4, back = 0.22;
+    if (f === 3) { // 컴퓨터 책상
+      const wood = pm(0x6b5a48), dark = pm(0x1c1f26);
+      g.add(box(0.9, 0.05, 0.55, wood, 0, 0.62, 0));
+      g.add(box(0.05, 0.6, 0.5, wood, -0.42, 0.3, 0), box(0.05, 0.6, 0.5, wood, 0.42, 0.3, 0));
+      g.add(box(0.8, 0.3, 0.03, wood, 0, 0.45, -0.25));
+      g.add(box(0.48, 0.32, 0.04, dark, 0, 0.88, -0.14), box(0.06, 0.12, 0.06, dark, 0, 0.7, -0.14));
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.43, 0.27), new THREE.MeshBasicMaterial({ color: 0x3fb6ff }));
+      scr.position.set(0, 0.88, -0.118); g.add(scr);
+      g.add(box(0.36, 0.02, 0.12, dark, 0, 0.655, 0.1));
+      peekY = 0.25; back = 0.2;
+    } else if (f === 2) { // 촬영 장비 케이스
+      const black = pm(0x17171c), metal = pm(0x9aa0a8);
+      g.add(box(0.82, 0.55, 0.45, black, 0, 0.275, 0));
+      g.add(box(0.84, 0.03, 0.47, metal, 0, 0.55, 0), box(0.84, 0.03, 0.47, metal, 0, 0.02, 0));
+      g.add(box(0.22, 0.04, 0.05, metal, 0, 0.59, 0));
+      const stand = box(0.03, 1.0, 0.03, metal, -0.36, 0.5, -0.12); g.add(stand);
+      g.add(box(0.16, 0.12, 0.12, black, -0.36, 1.02, -0.08));
+      const clap = makeSprite('🎬', 0.32); clap.position.set(0.22, 0.56, 0.05); g.add(clap);
+      peekY = 0.45; back = 0.22;
+    } else { // 사물함
+      const steel = pm(0x4d6a86), dark = pm(0x23303d);
+      g.add(box(0.76, 1.15, 0.4, steel, 0, 0.575, 0));
+      g.add(box(0.015, 1.05, 0.01, dark, 0, 0.575, 0.2));
+      for (let i = 0; i < 3; i++) { g.add(box(0.22, 0.02, 0.01, dark, -0.18, 0.95 + i * 0.05, 0.2)); g.add(box(0.22, 0.02, 0.01, dark, 0.18, 0.95 + i * 0.05, 0.2)); }
+      g.add(box(0.03, 0.12, 0.03, pm(0xb8c0c8), 0.06, 0.6, 0.21));
+      peekY = 0.82; back = 0.28;
+    }
+    const peek = makeSprite('👀', 0.3); peek.position.set(0, peekY, 0.24); peek.visible = false; g.add(peek);
+    return { group: g, peek, back };
+  }
+  const hideRingGeo = new THREE.PlaneGeometry(0.92, 0.92).rotateX(-Math.PI / 2);
+  const hideRingMat = new THREE.MeshBasicMaterial({ color: 0x5fd7ff, transparent: true, opacity: 0.18, depthWrite: false });
+
+  const dyn = new THREE.Group();
+  scene.add(dyn);
+
+  const pl = makeActor('🧑‍🎓', 0.95);
+  scene.add(pl.group);
+
+  const dummy = new THREE.Object3D();
+  function setDummy(x, y, z, ry = 0){ dummy.position.set(x, y, z); dummy.rotation.set(0, ry, 0); dummy.updateMatrix(); return dummy.matrix; }
+
+  function build3D(){
+    const assets = floorAssets(floor);
+    floorMat.map = assets.floor; floorMat.needsUpdate = true;
+    wallMat.map = assets.wall; wallMat.needsUpdate = true;
+    decorMeshes.forEach((m, i) => { m.material.map = assets.decor[i]; m.material.needsUpdate = true; });
+
+    let n = 0;
+    const counts = [0, 0];
+    const glowSpots = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (grid[y][x] !== 1) continue;
+      wallMesh.setMatrixAt(n, setDummy(x, WALL_H / 2, y));
+      capMesh.setMatrixAt(n, setDummy(x, WALL_H + 0.001, y));
+      n++;
+      // 카메라 쪽에서 보이는 벽면에 장식
+      for (const [dx, dy, ry] of [[0, 1, 0], [1, 0, Math.PI / 2], [-1, 0, -Math.PI / 2]]) {
+        if (!isFloor(x + dx, y + dy) || Math.random() > 0.2) continue;
+        const k = Math.random() < 0.5 ? 0 : 1;
+        if (counts[k] >= 120) continue;
+        decorMeshes[k].setMatrixAt(counts[k]++, setDummy(x + dx * 0.505, 0.74, y + dy * 0.505, ry));
+        glowSpots.push([x + dx * 0.9, y + dy * 0.9]);
+      }
+    }
+    wallMesh.count = n; capMesh.count = n;
+    wallMesh.instanceMatrix.needsUpdate = true; capMesh.instanceMatrix.needsUpdate = true;
+    decorMeshes.forEach((m, i) => { m.count = counts[i]; m.instanceMatrix.needsUpdate = true; });
+
+    shuffle(glowSpots);
+    glowLights.forEach((l, i) => {
+      l.color.setHex(FLOORS[floor].glow);
+      const s = glowSpots[i];
+      if (s) { l.position.set(s[0], 0.8, s[1]); l.visible = true; } else l.visible = false;
+    });
+
+    while (dyn.children.length) dyn.remove(dyn.children[0]);
+
+    exitGlow.position.set(exit.x, 0.015, exit.y);
+    exitGlow.material.color.setHex(floor === 1 ? 0x48e08a : 0xf2c94c);
+    exitLight.color.setHex(FLOORS[floor].exitColor);
+    exitLight.position.set(exit.x, 1.2, exit.y);
+    const exitSprite = makeSprite(floor === 1 ? '🚪' : '🪜', 0.9);
+    exitSprite.position.set(exit.x, 0.02, exit.y);
+    dyn.add(exitSprite);
+
+    hides.forEach(h => {
+      const p = makeProp(floor);
+      const [wx, wy] = h.wall;
+      p.group.position.set(h.x + wx * p.back, 0, h.y + wy * p.back);
+      p.group.rotation.y = Math.atan2(-wx, -wy);
+      const ring = new THREE.Mesh(hideRingGeo, hideRingMat); ring.position.set(h.x, 0.01, h.y);
+      dyn.add(p.group, ring);
+      h.peek = p.peek;
+    });
+
+    items.forEach(it => {
+      const a = makeActor(ITEMS[it.type].emoji, 0.55);
+      a.sprite.position.y = 0.25;
+      a.group.position.set(it.x, 0, it.y);
+      it.obj = a.group; it.sprite = a.sprite;
+      dyn.add(a.group);
+    });
+
+    tas.forEach(t => {
+      const a = makeActor('🧑‍🏫', 1.0);
+      const alert = makeSprite('❗', 0.42); alert.position.y = 1.05;
+      const dizzy = makeSprite('💫', 0.42); dizzy.position.y = 1.05;
+      a.group.add(alert, dizzy);
+      t.obj = a; t.alert = alert; t.dizzy = dizzy;
+      dyn.add(a.group);
+    });
+  }
+
+  function dim(x, y, min){
+    const d = Math.hypot(x - player.x, y - player.y);
+    return Math.max(min, Math.min(1, 1.25 - d * 0.14));
+  }
+
+  let anyChase = false;
+  function sync3D(dt){
+    const bob = player.moving ? Math.abs(Math.sin(time * 14)) * 0.06 : 0;
+    pl.group.position.set(player.x, 0, player.y);
+    pl.sprite.position.y = bob;
+    pl.sprite.material.opacity = effects.invis > 0 ? 0.3 : 1;
+    pl.group.visible = !hidden && !(invuln > 0 && Math.floor(time * 10) % 2 === 0);
+    hides.forEach(h => { h.peek.visible = hidden && h.x === Math.round(player.x) && h.y === Math.round(player.y); });
+
+    if (flickerT > 0) flickerT -= dt;
+    else if (state === 'play' && Math.random() < 0.004) flickerT = 0.12 + Math.random() * 0.15;
+    torch.intensity = hidden ? 0.5 : (flickerT > 0 ? 0.55 + Math.random() * 0.4 : 1.9 + Math.sin(time * 7) * 0.06);
+    torch.position.set(player.x, 1.7, player.y + 0.2);
+
+    const pulse = 0.45 + Math.sin(time * 3) * 0.2;
+    exitGlow.material.opacity = pulse;
+    exitLight.intensity = 0.9 + pulse;
+    glowLights.forEach((l, i) => { l.intensity = 0.75 + Math.sin(time * (2 + i) + i) * 0.12; });
+
+    items.forEach(it => {
+      it.sprite.position.y = 0.25 + Math.sin(time * 3 + it.x) * 0.07;
+      it.sprite.material.color.setScalar(dim(it.x, it.y, 0.3));
+    });
+
+    anyChase = false;
+    tas.forEach(t => {
+      const moving = t.stun <= 0 && (t.x !== t.tx || t.y !== t.ty);
+      t.obj.group.position.set(t.x, 0, t.y);
+      t.obj.sprite.position.y = moving ? Math.abs(Math.sin(time * 11 + t.sx)) * 0.05 : 0;
+      t.obj.sprite.material.color.setScalar(dim(t.x, t.y, 0.25));
+      t.obj.sprite.material.rotation = t.stun > 0 ? Math.sin(time * 9) * 0.25 : 0;
+      t.alert.visible = state === 'play' && t.stun <= 0 && t.state === 'chase';
+      t.dizzy.visible = t.stun > 0;
+      if (t.alert.visible) anyChase = true;
+    });
+
+    let np = 0, nc = 0;
+    if (state === 'play') {
+      const R = FLOORS[floor].vision;
+      for (const t of tas) {
+        if (t.stun > 0) continue;
+        const ax = Math.round(t.x), ay = Math.round(t.y);
+        const chase = t.state === 'chase';
+        for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+          if (dx * dx + dy * dy > R * R) continue;
+          const x = ax + dx, y = ay + dy;
+          if (!isFloor(x, y) || !los(ax, ay, x, y)) continue;
+          const m = setDummy(x, 0.012, y);
+          if (chase) { if (nc < MAXV) visChase.setMatrixAt(nc++, m); }
+          else if (np < MAXV) visPatrol.setMatrixAt(np++, m);
+        }
+      }
+    }
+    visPatrol.count = np; visChase.count = nc;
+    visPatrol.instanceMatrix.needsUpdate = true; visChase.instanceMatrix.needsUpdate = true;
+
+    document.getElementById('chase').style.opacity = anyChase ? (0.6 + Math.sin(time * 9) * 0.3).toFixed(2) : '0';
+  }
+
+  const camTarget = new THREE.Vector3();
+  let camOff = new THREE.Vector3(0, 9, 5);
+  function snapCamera(){ camTarget.set(player.x, 0, player.y); }
+  function updateCamera(dt){
+    const k = 1 - Math.pow(0.002, dt);
+    camTarget.x += (player.x - camTarget.x) * k;
+    camTarget.z += (player.y - camTarget.z) * k;
+    let sx = 0, sz = 0;
+    if (shakeT > 0) { shakeT -= dt; sx = (Math.random() - 0.5) * 0.35; sz = (Math.random() - 0.5) * 0.35; }
+    const drift = state === 'start' ? Math.sin(time * 0.3) * 1.2 : 0;
+    camera.position.set(camTarget.x + camOff.x + sx + drift, camOff.y, camTarget.z + camOff.z + sz);
+    camera.lookAt(camTarget.x, 0.3, camTarget.z);
+  }
+
+  function resize(){
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    const portrait = w < h;
+    camera.fov = portrait ? 60 : 50;
+    camOff = portrait ? new THREE.Vector3(0, 11, 5.5) : new THREE.Vector3(0, 9, 5);
+    const dist = camOff.length();
+    scene.fog.near = dist - 0.5;
+    scene.fog.far = dist + 6.5;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  // ================= 루프 =================
+  let prev = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now - prev) / 1000);
+    prev = now;
+    time += dt;
+
+    if (state === 'play') {
+      if (freeze > 0) {
+        freeze -= dt;
+        player.moving = false;
+        if (freeze <= 0 && afterFreeze) { const f = afterFreeze; afterFreeze = null; f(); }
+      } else {
+        effects.speed = Math.max(0, effects.speed - dt);
+        effects.invis = Math.max(0, effects.invis - dt);
+        invuln = Math.max(0, invuln - dt);
+        updatePlayer(dt);
+        if (freeze <= 0) {
+          tas.forEach(t => updateTA(t, dt));
+          if (!hidden && effects.invis <= 0 && invuln <= 0) {
+            for (const t of tas) {
+              if (t.stun > 0) continue;
+              if (Math.abs(t.x - player.x) < 0.6 && Math.abs(t.y - player.y) < 0.6) { caught(); break; }
+            }
+          }
+        }
+      }
+      updateEffects();
+    }
+    updatePromptAndHide();
+    sync3D(dt);
+
+    let mode = 'none';
+    if (state === 'play' && freeze <= 0) {
+      if (anyChase) mode = 'chase';
+      else if (hidden && tas.some(t => t.stun <= 0 && Math.hypot(t.x - player.x, t.y - player.y) < 3.5)) mode = 'tense';
+    }
+    sfx.music(mode);
+
+    updateCamera(dt);
+    renderer.render(scene, camera);
+    drawMinimap();
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+
+  // 한글 글꼴이 준비된 뒤 벽 포스터를 그린다
+  const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  Promise.race([fontsReady, new Promise(r => setTimeout(r, 1500))]).then(() => {
+    newFloor();
+    snapCamera();
+    updateHud(); updateActions();
+    resize();
+    booted = true;
+    requestAnimationFrame(loop);
+  });
+})();
+</script>
+</body>
+</html>
